@@ -5,6 +5,10 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
+import { ClientsModule } from './modules/clients/clients.module';
+import { CampaignsModule } from './modules/campaigns/campaigns.module';
+import { LeadsModule } from './modules/leads/leads.module';
+import { SettingsModule } from './modules/settings/settings.module';
 import databaseConfig from './config/database.config';
 import jwtConfig from './config/jwt.config';
 
@@ -18,13 +22,17 @@ import jwtConfig from './config/jwt.config';
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
         ...configService.get('database'),
-        logging: ['error', 'warn'], // Add logging for debugging
+        logging: ['error', 'warn'],
         logger: 'advanced-console'
       }),
       inject: [ConfigService],
     }),
     AuthModule,
     UsersModule,
+    ClientsModule,
+    CampaignsModule,
+    LeadsModule,
+    SettingsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
