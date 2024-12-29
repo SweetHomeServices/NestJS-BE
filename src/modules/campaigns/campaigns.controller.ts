@@ -5,6 +5,7 @@ import { CampaignsService } from './campaigns.service';
 import { CreateCampaignDto } from './dto/create-campaign.dto';
 import { UpdateCampaignDto } from './dto/update-campaign.dto';
 import { Campaign } from '../../entities/campaign.entity';
+import { CampaignResponseDto } from './dto/campaign-response.dto';
 
 @ApiTags('Campaigns')
 @ApiBearerAuth()
@@ -22,14 +23,14 @@ export class CampaignsController {
 
   @Get()
   @ApiOperation({ summary: 'Get all campaigns' })
-  @ApiResponse({ status: 200, description: 'List of all campaigns', type: [Campaign] })
+  @ApiResponse({ status: 200, description: 'List of all campaigns', type: [CampaignResponseDto] })
   findAll() {
     return this.campaignsService.findAll();
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a campaign by id' })
-  @ApiResponse({ status: 200, description: 'Campaign found', type: Campaign })
+  @ApiResponse({ status: 200, description: 'Campaign found', type: CampaignResponseDto })
   @ApiResponse({ status: 404, description: 'Campaign not found' })
   findOne(@Param('id') id: string) {
     return this.campaignsService.findOne(id);

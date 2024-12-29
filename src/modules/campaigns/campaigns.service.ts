@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Campaign } from '../../entities/campaign.entity';
 import { CreateCampaignDto } from './dto/create-campaign.dto';
+import { CampaignResponseDto } from './dto/campaign-response.dto';
 
 @Injectable()
 export class CampaignsService {
@@ -12,17 +13,33 @@ export class CampaignsService {
   ) {}
 
   async create(createCampaignDto: CreateCampaignDto): Promise<Campaign> {
-    const campaign = this.campaignsRepository.create(createCampaignDto);
+    const campaign = this.campaignsRepository.create({
+      ...createCampaignDto,
+      client: { id: createCampaignDto.clientId },
+      knowledgeBase: { id: createCampaignDto.knowledgeBaseId }
+    });
     return await this.campaignsRepository.save(campaign);
   }
 
-  async findAll(): Promise<Campaign[]> {
-    return await this.campaignsRepository.find({
-      relations: ['client', 'leads'],
+  async findAll(): Promise<CampaignResponseDto[]> {
+    // Retrieve campaigns with their leads
+    const campaigns = await this.campaignsRepository.find({ relations: ['leads'] });
+
+    // Map Campaign entities to CampaignResponseDto
+    return campaigns.map((campaign) => {
+      const numberOfLeads = campaign.leads.length;
+      const convertedLeads = campaign.leads.filter((lead) => lead.status === 'converted').length;
+      const conversionRate = numberOfLeads > 0 ? (convertedLeads / numberOfLeads) * 100 : 0;
+
+      return {
+        ...campaign,
+        numberOfLeads,
+        conversionRate,
+      };
     });
   }
 
-  async findOne(id: string): Promise<Campaign> {
+  async findOne(id: string): Promise<CampaignResponseDto> {
     const campaign = await this.campaignsRepository.findOne({
       where: { id },
       relations: ['client', 'leads'],
@@ -32,7 +49,15 @@ export class CampaignsService {
       throw new NotFoundException(`Campaign with ID ${id} not found`);
     }
 
-    return campaign;
+    const numberOfLeads = campaign.leads.length;
+    const convertedLeads = campaign.leads.filter((lead) => lead.status === 'converted').length;
+    const conversionRate = numberOfLeads > 0 ? (convertedLeads / numberOfLeads) * 100 : 0;
+
+    return {
+      ...campaign,
+      numberOfLeads,
+      conversionRate,
+    };
   }
 
   async update(id: string, updateCampaignDto: Partial<CreateCampaignDto>): Promise<Campaign> {
