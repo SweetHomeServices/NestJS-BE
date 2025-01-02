@@ -15,7 +15,6 @@ export class CampaignsService {
   async create(createCampaignDto: CreateCampaignDto): Promise<Campaign> {
     const campaign = this.campaignsRepository.create({
       ...createCampaignDto,
-      client: { id: createCampaignDto.clientId },
       knowledgeBase: { id: createCampaignDto.knowledgeBaseId }
     });
     return await this.campaignsRepository.save(campaign);

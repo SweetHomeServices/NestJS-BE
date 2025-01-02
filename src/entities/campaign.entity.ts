@@ -48,9 +48,6 @@ export class Campaign {
   @Column({ type: 'jsonb', name: 'working_hours' })
   workingHours: WorkingHours;
 
-  @ManyToOne(() => Client, client => client.campaigns)
-  client: Client;
-
   @ManyToOne(() => KnowledgeBase, knowledgeBase => knowledgeBase.campaigns)
   knowledgeBase: KnowledgeBase;
 

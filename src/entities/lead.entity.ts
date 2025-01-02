@@ -1,6 +1,7 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany } from 'typeorm';
 import { Client } from './client.entity';
 import { Campaign } from './campaign.entity';
+import { ChatMessage } from './chat-message.entity';
 
 @Entity('leads')
 export class Lead {
@@ -22,6 +23,9 @@ export class Lead {
   @Column({ type: 'jsonb', nullable: true })
   additionalInfo: Record<string, any>;
 
+  @Column({ nullable: true })
+  text: string;
+
   @Column({ default: 'new' })
   status: string;
 
@@ -30,6 +34,9 @@ export class Lead {
 
   @ManyToOne(() => Campaign, campaign => campaign.leads)
   campaign: Campaign;
+
+  @OneToMany(() => ChatMessage, message => message.lead, { cascade: true })
+  messages: ChatMessage[];
 
   @CreateDateColumn()
   createdAt: Date;

@@ -25,9 +25,6 @@ export class Client {
   @Column({ type: 'text', nullable: true })
   notes: string;
 
-  @OneToMany(() => Campaign, campaign => campaign.client)
-  campaigns: Campaign[];
-
   @OneToMany(() => Lead, lead => lead.client)
   leads: Lead[];
 

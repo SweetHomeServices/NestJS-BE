@@ -50,4 +50,12 @@ export class LeadsController {
   remove(@Param('id') id: string) {
     return this.leadsService.remove(id);
   }
+
+  @Get('test/test')
+  @ApiOperation({ summary: 'Test endpoint' })
+  @ApiResponse({ status: 200, description: 'Test endpoint' })
+  test() {
+    console.log('test');
+    return this.leadsService.test();
+  }
 }
