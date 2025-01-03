@@ -11,6 +11,9 @@ import { ChatMessage } from 'src/entities/chat-message.entity';
 import { LeadResponseDto } from './dto/lead-response.dto';
 import { ChatCompletionMessageParam } from 'openai/resources';
 import { IncomingSmsDto } from './dto/incoming-sms.dto';
+import { IncomingWhatsappDto } from './dto/incoming-whatsapp.dto';
+import MessagingResponse from 'twilio/lib/twiml/MessagingResponse';
+import twilioClient from 'src/config/twilio.config';
 
 @Injectable()
 export class LeadsService {
@@ -192,7 +195,6 @@ export class LeadsService {
       console.log(`No lead found for phone number ${fromNumber}`);
       return;
     } 
-
     
     const systemMessage = {
       "role": "system",
@@ -200,7 +202,6 @@ export class LeadsService {
     };
    
 
-    
     existingLead.messages.push(  
       Object.assign(new ChatMessage(), {
         lead: existingLead,
@@ -279,6 +280,17 @@ export class LeadsService {
     return;
   }
 
+  async processIncomingWhatsapp(dto: IncomingWhatsappDto) {
+    const {From: fromNumber, Body: body } = dto;
+    
+    console.log(`Incoming SMS from ${fromNumber}: ${body}`);
+
+    await this.sendWhatsappMessage(fromNumber, 'Howsit!');
+  
+    
+    return;
+  }
+
   async test() {
 
     const functionDefinitions = [
@@ -330,6 +342,20 @@ export class LeadsService {
       return sendResult;
     } catch (err) {
       throw new Error(`SignalWire SMS Error: ${err}`);
+    }
+  }
+
+  async sendWhatsappMessage(toNumber, messageBody) {
+    try {
+      const message = await twilioClient.messages.create({
+        body: messageBody,
+        from: 'whatsapp:+14155238886', // This is the Twilio Sandbox WhatsApp number
+        to: toNumber,
+      });
+  
+      console.log('Message sent: ', message.sid);
+    } catch (error) {
+      console.error('Error sending WhatsApp message: ', error);
     }
   }
 }

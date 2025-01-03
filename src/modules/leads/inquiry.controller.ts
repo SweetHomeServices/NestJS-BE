@@ -5,6 +5,7 @@ import { CreateLeadDto } from './dto/create-lead.dto';
 import { UpdateLeadDto } from './dto/update-lead.dto';
 import { Lead } from '../../entities/lead.entity';
 import { IncomingSmsDto } from './dto/incoming-sms.dto';
+import { IncomingWhatsappDto } from './dto/incoming-whatsapp.dto';
 
 @ApiTags('Inquiries')
 @Controller('inquiry')
@@ -34,6 +35,14 @@ export class InquiryController {
     const toNumber = '+18188504565';
     const message = 'Hello from SignalWire!';
     this.leadsService.sendSms(fromNumber, toNumber, message );
+    return;
+  }
+
+  @Post('process-incoming-whatsapp')
+  @ApiOperation({ summary: 'Process incoming whatsapp message' })
+  @ApiResponse({ status: 201, description: 'Whatsapp message processed successfully' })
+  processIncomingWhatsapp(@Body() dto: IncomingWhatsappDto) {
+    this.leadsService.processIncomingWhatsapp(dto);
     return;
   }
 }
