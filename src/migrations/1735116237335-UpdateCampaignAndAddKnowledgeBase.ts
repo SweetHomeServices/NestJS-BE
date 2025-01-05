@@ -7,8 +7,8 @@ export class UpdateCampaignAndAddKnowledgeBase1735116237335 implements Migration
         await queryRunner.query(`CREATE TABLE "knowledgebases" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" character varying NOT NULL, "primary_goal" character varying NOT NULL, "description" text NOT NULL, "spam_filter" character varying NOT NULL, "important_rules" text NOT NULL, "use_emoji_on_response" boolean NOT NULL DEFAULT false, "communication_tone" character varying NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_64f56428cb8ba972a0a880c52eb" PRIMARY KEY ("id"))`);
         await queryRunner.query(`ALTER TABLE "campaigns" DROP COLUMN "description"`);
         await queryRunner.query(`ALTER TABLE "campaigns" DROP COLUMN "settings"`);
-        await queryRunner.query(`ALTER TABLE "campaigns" DROP COLUMN "startDate"`);
-        await queryRunner.query(`ALTER TABLE "campaigns" DROP COLUMN "endDate"`);
+        await queryRunner.query(`ALTER TABLE "campaigns" DROP COLUMN "start_date"`);
+        await queryRunner.query(`ALTER TABLE "campaigns" DROP COLUMN "end_date"`);
         await queryRunner.query(`ALTER TABLE "campaigns" ADD "type" character varying NOT NULL`);
         await queryRunner.query(`ALTER TABLE "campaigns" ADD "timezone" character varying NOT NULL`);
         await queryRunner.query(`ALTER TABLE "campaigns" ADD "campaign_phone" character varying NOT NULL`);
@@ -32,8 +32,8 @@ export class UpdateCampaignAndAddKnowledgeBase1735116237335 implements Migration
         await queryRunner.query(`ALTER TABLE "campaigns" DROP COLUMN "campaign_phone"`);
         await queryRunner.query(`ALTER TABLE "campaigns" DROP COLUMN "timezone"`);
         await queryRunner.query(`ALTER TABLE "campaigns" DROP COLUMN "type"`);
-        await queryRunner.query(`ALTER TABLE "campaigns" ADD "endDate" TIMESTAMP`);
-        await queryRunner.query(`ALTER TABLE "campaigns" ADD "startDate" TIMESTAMP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "campaigns" ADD "end_date" TIMESTAMP`);
+        await queryRunner.query(`ALTER TABLE "campaigns" ADD "start_date" TIMESTAMP NOT NULL`);
         await queryRunner.query(`ALTER TABLE "campaigns" ADD "settings" jsonb`);
         await queryRunner.query(`ALTER TABLE "campaigns" ADD "description" text`);
         await queryRunner.query(`DROP TABLE "knowledgebases"`);
