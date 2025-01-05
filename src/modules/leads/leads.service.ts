@@ -281,13 +281,105 @@ export class LeadsService {
   }
 
   async processIncomingWhatsapp(dto: IncomingWhatsappDto) {
-    const {From: fromNumber, Body: body } = dto;
+    const {From: fromNumber, To: toNumber, Body: body } = dto;
     
-    console.log(`Incoming SMS from ${fromNumber}: ${body}`);
+    const existingLead = await this.leadsRepository.findOne({
+      where: {
+        phone: fromNumber,
+        campaign: {
+          campaignPhone: toNumber,
+        },
+      },
+      relations: ['client', 'campaign','campaign.knowledgeBase', 'messages'],
+    });
+    if (!existingLead) {
+      console.log(`No lead found for phone number ${fromNumber}`);
+      return;
+    } 
+    
+    const systemMessage = {
+      "role": "system",
+       "content" : `${existingLead.campaign?.knowledgeBase?.primaryGoal} For reference, today's date is ${new Date().toLocaleDateString()}.`,
+    };
+   
 
-    await this.sendWhatsappMessage(fromNumber, 'Howsit!');
-  
+    existingLead.messages.push(  
+      Object.assign(new ChatMessage(), {
+        lead: existingLead,
+        role: 'user',
+        text: body
+      })
+    );
+
+   const mappedExsitingMessages = existingLead.messages.map((message) => ({ role: message.role, content: message.text }));
+
+   const messages: any = [systemMessage, ...mappedExsitingMessages];
+
+    const functions = [
+      {
+        name: "bookService",
+        description: "Schedules the requested job. E.g. chimney sweeping.",
+        parameters: {
+          type: "object",
+          properties: {
+            serviceType: { type: "string", description: "Type of service (chimney sweeping, etc.)" },
+            date: { type: "string", description: "Desired date in YYYY-MM-DD format" },
+            time: { type: "string", description: "Desired time in HH:MM format" },
+            address: { type: "string", description: "Address where the service will be performed" },
+            notes: { type: "string", description: "Any additional user preferences or notes" }
+          },
+          required: ["serviceType", "date", "time", "address"]
+        }
+      }
+    ];
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: messages,
+      functions,
+      function_call: "auto"
+    });
+
+    const responseMessage = completion.choices[0].message;
+
+    if (responseMessage.function_call) {
+      console.log('tool calls');
+      console.log(responseMessage.function_call);
+      const { name, arguments: argsString } = responseMessage.function_call;
+      const args = JSON.parse(argsString);
+      
+      if (name === "bookService") {
+        // 1. Call your scheduling system
+        console.log(`Scheduling ${args.serviceType} job for ${args.date} at ${args.time} at ${args.address}.`);
     
+        // 2. Respond to user
+        const confirmation = `Your ${args.serviceType} job has been scheduled for ${args.date} at ${args.time}.`;
+        // (a) Add to conversation
+        existingLead.messages.push(
+          Object.assign(new ChatMessage(), {
+            lead: existingLead,
+            role: 'assistant',
+            text: confirmation
+          })
+        );
+        // (b) Send SMS to user
+        console.log(`Sending SMS to ${fromNumber}: ${confirmation}`);
+      }
+    }
+    else {
+      console.log('no tool calls');
+      console.log(responseMessage);
+      const assistantChatMessage = new ChatMessage();
+      assistantChatMessage.role = responseMessage.role;
+      assistantChatMessage.text = responseMessage.content;
+      assistantChatMessage.lead = existingLead;
+      existingLead.messages.push(assistantChatMessage);
+
+      await this.sendWhatsappMessage(fromNumber, responseMessage.content);
+    }
+
+    await this.leadsRepository.save(existingLead);
+
     return;
   }
 

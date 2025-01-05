@@ -42,6 +42,7 @@ export class InquiryController {
   @ApiOperation({ summary: 'Process incoming whatsapp message' })
   @ApiResponse({ status: 201, description: 'Whatsapp message processed successfully' })
   processIncomingWhatsapp(@Body() dto: IncomingWhatsappDto) {
+    console.log('Processing incoming whatsapp message');
     this.leadsService.processIncomingWhatsapp(dto);
     return;
   }
