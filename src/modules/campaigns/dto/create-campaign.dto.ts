@@ -53,13 +53,6 @@ export class CreateCampaignDto {
   @Type(() => WorkingHours)
   workingHours: WorkingHours;
 
-  @ApiProperty({ 
-    example: '123e4567-e89b-12d3-a456-426614174000',
-    description: 'Client ID'
-  })
-  @IsUUID()
-  @IsOptional()
-  clientId: string;
 
   @ApiProperty({ 
     example: '123e4567-e89b-12d3-a456-426614174000',

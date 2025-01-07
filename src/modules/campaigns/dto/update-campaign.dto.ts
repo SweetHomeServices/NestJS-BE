@@ -57,15 +57,6 @@ export class UpdateCampaignDto {
 
   @ApiProperty({ 
     example: '123e4567-e89b-12d3-a456-426614174000',
-    description: 'Client ID',
-    required: false
-  })
-  @IsUUID()
-  @IsOptional()
-  clientId?: string;
-
-  @ApiProperty({ 
-    example: '123e4567-e89b-12d3-a456-426614174000',
     description: 'Knowledge Base ID',
     required: false
   })
