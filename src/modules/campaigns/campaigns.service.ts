@@ -41,7 +41,7 @@ export class CampaignsService {
   async findOne(id: string): Promise<CampaignResponseDto> {
     const campaign = await this.campaignsRepository.findOne({
       where: { id },
-      relations: ['client', 'leads'],
+      relations: ['leads'],
     });
 
     if (!campaign) {
