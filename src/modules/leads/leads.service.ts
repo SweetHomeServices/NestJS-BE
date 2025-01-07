@@ -129,6 +129,8 @@ export class LeadsService {
       chatMessages.push(assistantChatMessage);
   
       lead.messages = chatMessages;
+
+      await this.sendWhatsappMessage(createLeadDto.phone, responseMessage.content);
     }
 
     const savedLead = await this.leadsRepository.save(lead);
