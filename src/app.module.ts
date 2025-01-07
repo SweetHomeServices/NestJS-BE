@@ -9,6 +9,7 @@ import { ClientsModule } from './modules/clients/clients.module';
 import { CampaignsModule } from './modules/campaigns/campaigns.module';
 import { LeadsModule } from './modules/leads/leads.module';
 import { SettingsModule } from './modules/settings/settings.module';
+import { KnowledgeBaseModule } from './modules/knowledge-base/knowledge-base.module';
 import databaseConfig from './config/database.config';
 import jwtConfig from './config/jwt.config';
 
@@ -33,6 +34,7 @@ import jwtConfig from './config/jwt.config';
     CampaignsModule,
     LeadsModule,
     SettingsModule,
+    KnowledgeBaseModule,
   ],
   controllers: [AppController],
   providers: [AppService],

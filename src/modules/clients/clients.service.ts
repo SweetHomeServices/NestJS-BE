@@ -18,14 +18,14 @@ export class ClientsService {
 
   async findAll(): Promise<Client[]> {
     return await this.clientsRepository.find({
-      relations: ['campaigns', 'leads'],
+      relations: ['leads'],
     });
   }
 
   async findOne(id: string): Promise<Client> {
     const client = await this.clientsRepository.findOne({
       where: { id },
-      relations: ['campaigns', 'leads'],
+      relations: ['leads'],
     });
 
     if (!client) {
