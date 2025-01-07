@@ -4,12 +4,15 @@ import { Repository } from 'typeorm';
 import { Campaign } from '../../entities/campaign.entity';
 import { CreateCampaignDto } from './dto/create-campaign.dto';
 import { CampaignResponseDto } from './dto/campaign-response.dto';
+import { KnowledgeBase } from 'src/entities/knowledgebase.entity';
 
 @Injectable()
 export class CampaignsService {
   constructor(
     @InjectRepository(Campaign)
     private campaignsRepository: Repository<Campaign>,
+    @InjectRepository(KnowledgeBase)
+    private knowledgeBasesRepository: Repository<KnowledgeBase>,
   ) {}
 
   async create(createCampaignDto: CreateCampaignDto): Promise<Campaign> {
@@ -62,6 +65,10 @@ export class CampaignsService {
   async update(id: string, updateCampaignDto: Partial<CreateCampaignDto>): Promise<Campaign> {
     const campaign = await this.findOne(id);
     Object.assign(campaign, updateCampaignDto);
+    if (updateCampaignDto.knowledgeBaseId) {
+      const knowledgeBase = await this.knowledgeBasesRepository.findOne({ where: {id: updateCampaignDto.knowledgeBaseId } });
+      if (knowledgeBase) campaign.knowledgeBase = knowledgeBase;
+    }
     return await this.campaignsRepository.save(campaign);
   }
 
