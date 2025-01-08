@@ -10,7 +10,9 @@ export default registerAs('database', () => ({
   entities: ['dist/**/*.entity{.ts,.js}'],
   synchronize: false, // Disable synchronize in production
   autoLoadEntities: true,
-  
+  ssl: {
+    rejectUnauthorized: false,
+  },
  
   extra: {
     // Pool configuration
