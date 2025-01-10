@@ -3,72 +3,66 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Campaign } from '../../entities/campaign.entity';
 import { CreateCampaignDto } from './dto/create-campaign.dto';
-import { CampaignResponseDto } from './dto/campaign-response.dto';
-import { KnowledgeBase } from 'src/entities/knowledgebase.entity';
+import { UpdateCampaignDto } from './dto/update-campaign.dto';
 
 @Injectable()
 export class CampaignsService {
   constructor(
     @InjectRepository(Campaign)
     private campaignsRepository: Repository<Campaign>,
-    @InjectRepository(KnowledgeBase)
-    private knowledgeBasesRepository: Repository<KnowledgeBase>,
   ) {}
 
   async create(createCampaignDto: CreateCampaignDto): Promise<Campaign> {
+    const { knowledgeBaseId, ...campaignData } = createCampaignDto;
+    
     const campaign = this.campaignsRepository.create({
-      ...createCampaignDto,
-      knowledgeBase: { id: createCampaignDto.knowledgeBaseId }
+      ...campaignData,
+      
+      knowledgeBase: { id: knowledgeBaseId }
     });
+
     return await this.campaignsRepository.save(campaign);
   }
 
-  async findAll(): Promise<CampaignResponseDto[]> {
-    // Retrieve campaigns with their leads
-    const campaigns = await this.campaignsRepository.find({ relations: ['leads'] });
-
-    // Map Campaign entities to CampaignResponseDto
-    return campaigns.map((campaign) => {
-      const numberOfLeads = campaign.leads.length;
-      const convertedLeads = campaign.leads.filter((lead) => lead.status === 'converted').length;
-      const conversionRate = numberOfLeads > 0 ? (convertedLeads / numberOfLeads) * 100 : 0;
-
-      return {
-        ...campaign,
-        numberOfLeads,
-        conversionRate,
-      };
+  async findAll(): Promise<Campaign[]> {
+    return await this.campaignsRepository.find({
+      relations: {
+        knowledgeBase: true,
+        leads: true
+      }
     });
   }
 
-  async findOne(id: string): Promise<CampaignResponseDto> {
+  async findOne(id: string): Promise<Campaign> {
     const campaign = await this.campaignsRepository.findOne({
       where: { id },
-      relations: ['leads'],
+      relations: {
+        knowledgeBase: true,
+        leads: true
+      }
     });
 
     if (!campaign) {
       throw new NotFoundException(`Campaign with ID ${id} not found`);
     }
 
-    const numberOfLeads = campaign.leads.length;
-    const convertedLeads = campaign.leads.filter((lead) => lead.status === 'converted').length;
-    const conversionRate = numberOfLeads > 0 ? (convertedLeads / numberOfLeads) * 100 : 0;
-
-    return {
-      ...campaign,
-      numberOfLeads,
-      conversionRate,
-    };
+    return campaign;
   }
 
-  async update(id: string, updateCampaignDto: Partial<CreateCampaignDto>): Promise<Campaign> {
+  async update(id: string, updateCampaignDto: UpdateCampaignDto): Promise<Campaign> {
     const campaign = await this.findOne(id);
-    Object.assign(campaign, updateCampaignDto);
-    if (updateCampaignDto.knowledgeBaseId) {
-      const knowledgeBase = await this.knowledgeBasesRepository.findOne({ where: {id: updateCampaignDto.knowledgeBaseId } });
-      if (knowledgeBase) campaign.knowledgeBase = knowledgeBase;
+    const { knowledgeBaseId, ...updateData } = updateCampaignDto;
+
+    // Update relations if provided
+    
+    
+    if (knowledgeBaseId) {
+      campaign.knowledgeBase = { id: knowledgeBaseId } as any;
     }
+
+    // Update other fields
+    Object.assign(campaign, updateData);
+    
     return await this.campaignsRepository.save(campaign);
   }
 
