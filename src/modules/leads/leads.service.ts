@@ -142,6 +142,7 @@ export class LeadsService {
       email: savedLead.email,
       phone: savedLead.phone,
       additionalInfo: savedLead.additionalInfo,
+      source: savedLead.source,
       text: savedLead.text,
       status: savedLead.status,
     };

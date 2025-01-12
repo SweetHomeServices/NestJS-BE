@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsEmail, IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
+import { LeadSource } from './lead-source.enum';
 
 export class UpdateLeadDto {
   @ApiProperty({ example: 'John', description: 'Lead first name', required: false })
@@ -25,6 +26,17 @@ export class UpdateLeadDto {
   @ApiProperty({ example: { source: 'website' }, description: 'Additional information', required: false })
   @IsOptional()
   additionalInfo?: Record<string, any>;
+
+  @ApiProperty({
+    enum: LeadSource,
+    example: LeadSource.WEBSITE,
+    description: 'Source of the lead',
+    required: false,
+    enumName: 'LeadSource'
+  })
+  @IsEnum(LeadSource)
+  @IsOptional()
+  source?: LeadSource;
 
   @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174000', description: 'Client ID', required: false })
   @IsUUID()

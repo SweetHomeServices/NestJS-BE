@@ -5,6 +5,7 @@ export class LeadResponseDto {
     email: string;
     phone: string;
     additionalInfo: Record<string, any>;
+    source: string;
     text: string;
     status: string;
 }

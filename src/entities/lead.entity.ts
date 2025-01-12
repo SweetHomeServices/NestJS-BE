@@ -2,6 +2,7 @@ import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateCol
 import { Client } from './client.entity';
 import { Campaign } from './campaign.entity';
 import { ChatMessage } from './chat-message.entity';
+import { LeadSource } from '../modules/leads/dto/lead-source.enum';
 
 @Entity('leads')
 export class Lead {
@@ -28,6 +29,9 @@ export class Lead {
 
   @Column({ default: 'new' })
   status: string;
+
+  @Column({ default: LeadSource.OTHER })
+  source: string;
 
   @ManyToOne(() => Client, client => client.leads)
   client: Client;
