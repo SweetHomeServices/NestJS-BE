@@ -18,8 +18,11 @@ export class Lead {
   @Column()
   email: string;
 
-  @Column({ nullable: true })
+  @Column()
   phone: string;
+
+  @Column({default: 'NA' })
+  zipcode: string;
 
   @Column({ type: 'jsonb', nullable: true })
   additionalInfo: Record<string, any>;

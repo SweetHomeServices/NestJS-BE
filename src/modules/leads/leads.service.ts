@@ -46,7 +46,7 @@ export class LeadsService {
 
     if (!campaign) {
       console.log(`Campaign with ID ${campaignId} not found`);
-      return null;
+      throw new NotFoundException(`Campaign with ID ${campaignId} not found`);
     }
 
     lead.campaign = campaign;
@@ -141,6 +141,7 @@ export class LeadsService {
       lastName: savedLead.lastName,
       email: savedLead.email,
       phone: savedLead.phone,
+      zipcode: savedLead.zipcode,
       additionalInfo: savedLead.additionalInfo,
       source: savedLead.source,
       text: savedLead.text,

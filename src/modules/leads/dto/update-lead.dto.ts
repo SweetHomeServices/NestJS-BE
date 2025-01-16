@@ -23,6 +23,11 @@ export class UpdateLeadDto {
   @IsOptional()
   phone?: string;
 
+  @ApiProperty({ example: '11367', description: 'Lead zipcode' })
+  @IsString()
+  @IsOptional()
+  zipcode?: string;
+
   @ApiProperty({ example: { source: 'website' }, description: 'Additional information', required: false })
   @IsOptional()
   additionalInfo?: Record<string, any>;

@@ -23,6 +23,11 @@ export class CreateLeadDto {
   @IsNotEmpty()
   phone: string;
 
+  @ApiProperty({ example: '11367', description: 'Lead zipcode' })
+  @IsString()
+  @IsNotEmpty()
+  zipcode: string;
+
   @ApiProperty({ example: 'Hi - I want help', description: 'Lead message text' })
   @IsString()
   @IsOptional()
