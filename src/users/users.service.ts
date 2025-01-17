@@ -45,4 +45,10 @@ export class UsersService {
     }
     return user;
   }
+
+  async updatePassword(id: string, hashedPassword: string): Promise<void> {
+    const user = await this.findById(id);
+    user.password = hashedPassword;
+    await this.usersRepository.save(user);
+  }
 }
