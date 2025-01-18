@@ -12,12 +12,14 @@ import { SettingsModule } from './modules/settings/settings.module';
 import { KnowledgeBaseModule } from './modules/knowledge-base/knowledge-base.module';
 import databaseConfig from './config/database.config';
 import jwtConfig from './config/jwt.config';
+import { MailModule } from './mail/mail.module';
+import mailConfig from './config/mail.config';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [databaseConfig, jwtConfig],
+      load: [databaseConfig, jwtConfig, mailConfig],
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -35,6 +37,7 @@ import jwtConfig from './config/jwt.config';
     LeadsModule,
     SettingsModule,
     KnowledgeBaseModule,
+    MailModule,
   ],
   controllers: [AppController],
   providers: [AppService],
