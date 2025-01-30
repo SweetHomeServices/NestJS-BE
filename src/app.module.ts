@@ -14,6 +14,7 @@ import databaseConfig from './config/database.config';
 import jwtConfig from './config/jwt.config';
 import { MailModule } from './mail/mail.module';
 import mailConfig from './config/mail.config';
+import { ChatMessagesModule } from './modules/chat-messages/chat-messages.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import mailConfig from './config/mail.config';
     SettingsModule,
     KnowledgeBaseModule,
     MailModule,
+    ChatMessagesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
