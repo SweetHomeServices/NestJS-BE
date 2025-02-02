@@ -1,17 +1,24 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { KnowledgeBaseService } from './knowledge-base.service';
 import { CreateKnowledgeBaseDto } from './dto/create-knowledge-base.dto';
 import { UpdateKnowledgeBaseDto } from './dto/update-knowledge-base.dto';
 import { KnowledgeBaseResponseDto } from './dto/knowledge-base-response.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { S3Service } from './s3.service';
+import { CreateKnowledgeBaseMultipartDto } from './dto/create-knowledge-base-multipart.dto';
+
 
 @ApiTags('Knowledge Base')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('knowledge-base')
 export class KnowledgeBaseController {
-  constructor(private readonly knowledgeBaseService: KnowledgeBaseService) {}
+  constructor(
+    private readonly knowledgeBaseService: KnowledgeBaseService, 
+    private readonly s3Service: S3Service,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a new knowledge base' })
@@ -20,8 +27,13 @@ export class KnowledgeBaseController {
     description: 'Knowledge base created successfully',
     type: KnowledgeBaseResponseDto 
   })
-  create(@Body() createKnowledgeBaseDto: CreateKnowledgeBaseDto) {
-    return this.knowledgeBaseService.create(createKnowledgeBaseDto);
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('file'))
+  create(
+    @Body() createKnowledgeBaseDto: CreateKnowledgeBaseMultipartDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    return this.knowledgeBaseService.create(createKnowledgeBaseDto, file);
   }
 
   @Get()
@@ -55,8 +67,14 @@ export class KnowledgeBaseController {
     type: KnowledgeBaseResponseDto 
   })
   @ApiResponse({ status: 404, description: 'Knowledge base not found' })
-  update(@Param('id') id: string, @Body() updateKnowledgeBaseDto: UpdateKnowledgeBaseDto) {
-    return this.knowledgeBaseService.update(id, updateKnowledgeBaseDto);
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('file'))
+  update(
+    @Param('id') id: string, 
+    @Body() updateKnowledgeBaseDto: UpdateKnowledgeBaseDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    return this.knowledgeBaseService.update(id, updateKnowledgeBaseDto, file);
   }
 
   @Delete(':id')
@@ -66,4 +84,5 @@ export class KnowledgeBaseController {
   remove(@Param('id') id: string) {
     return this.knowledgeBaseService.remove(id);
   }
+
 }
