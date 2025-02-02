@@ -454,7 +454,6 @@ export class LeadsService {
     var extractedText = "";
     if (lead.campaign.knowledgeBase.s3Key) {
       extractedText = await this.s3Service.extractDocxTextFromS3(lead.campaign.knowledgeBase.s3Key);
-      console.log(extractedText);
     }
     return {
       "role": "system",
