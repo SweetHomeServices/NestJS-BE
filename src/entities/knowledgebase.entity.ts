@@ -27,6 +27,13 @@ export class KnowledgeBase {
   @Column({ name: 'communication_tone' })
   communicationTone: string;
 
+  @Column({ type: 'text', nullable: true })
+  s3Key?: string;
+
+  // Optionally store the extracted text right in the DB if you want:
+  @Column({ type: 'text', nullable: true })
+  extractedText?: string;
+
   @OneToMany(() => Campaign, campaign => campaign.knowledgeBase)
   campaigns: Campaign[];
 
