@@ -14,6 +14,7 @@ import { IncomingSmsDto } from './dto/incoming-sms.dto';
 import { IncomingWhatsappDto } from './dto/incoming-whatsapp.dto';
 import MessagingResponse from 'twilio/lib/twiml/MessagingResponse';
 import twilioClient from 'src/config/twilio.config';
+import { S3Service } from '../S3/s3.service';
 
 @Injectable()
 export class LeadsService {
@@ -24,6 +25,7 @@ export class LeadsService {
     private clientRepository: Repository<Client>,
     @InjectRepository(Campaign)
     private campaignRepository: Repository<Campaign>,
+    private readonly s3Service: S3Service,
   ) {}
 
   async create(createLeadDto: CreateLeadDto): Promise<LeadResponseDto> {
@@ -70,7 +72,8 @@ export class LeadsService {
     ];
 
     const messages = [];
-    const systemMessage = this.buildSystemMessage(lead);
+    const systemMessage = await this.buildSystemMessage(lead);
+    return;
 
     const clientMessage = {"role": "user", "content": createLeadDto.text};
 
@@ -446,10 +449,16 @@ export class LeadsService {
     }
   }
 
-  buildSystemMessage(lead: Lead) {
+  async buildSystemMessage(lead: Lead) {
+
+    var extractedText = "";
+    if (lead.campaign.knowledgeBase.s3Key) {
+      extractedText = await this.s3Service.extractDocxTextFromS3(lead.campaign.knowledgeBase.s3Key);
+      console.log(extractedText);
+    }
     return {
       "role": "system",
-      "content" : `${lead.campaign.knowledgeBase.primaryGoal} For reference, today's date is ${new Date().toLocaleDateString()}.
+      "content" : `${lead.campaign.knowledgeBase.primaryGoal}. ${extractedText} | For reference, today's date is ${new Date().toLocaleDateString()}.
       The client's name is ${lead.client.firstName} ${lead.client.lastName}. The client's email is ${lead.client.email}. The client's phone number is ${lead.client.phone}.
       The client's zipcode is ${lead.zipcode}.`,
     };

@@ -6,7 +6,6 @@ import { CreateKnowledgeBaseDto } from './dto/create-knowledge-base.dto';
 import { UpdateKnowledgeBaseDto } from './dto/update-knowledge-base.dto';
 import { KnowledgeBaseResponseDto } from './dto/knowledge-base-response.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { S3Service } from './s3.service';
 import { CreateKnowledgeBaseMultipartDto } from './dto/create-knowledge-base-multipart.dto';
 
 
@@ -16,8 +15,7 @@ import { CreateKnowledgeBaseMultipartDto } from './dto/create-knowledge-base-mul
 @Controller('knowledge-base')
 export class KnowledgeBaseController {
   constructor(
-    private readonly knowledgeBaseService: KnowledgeBaseService, 
-    private readonly s3Service: S3Service,
+    private readonly knowledgeBaseService: KnowledgeBaseService
   ) {}
 
   @Post()

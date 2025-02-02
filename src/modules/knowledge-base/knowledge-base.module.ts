@@ -3,12 +3,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { KnowledgeBase } from '../../entities/knowledgebase.entity';
 import { KnowledgeBaseController } from './knowledge-base.controller';
 import { KnowledgeBaseService } from './knowledge-base.service';
-import { S3Service } from './s3.service';
+import { S3Module } from '../s3/s3.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([KnowledgeBase])],
+  imports: [TypeOrmModule.forFeature([KnowledgeBase]), S3Module],
   controllers: [KnowledgeBaseController],
-  providers: [KnowledgeBaseService, S3Service,],
+  providers: [KnowledgeBaseService],
   exports: [KnowledgeBaseService],
 })
 export class KnowledgeBaseModule {}

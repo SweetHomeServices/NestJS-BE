@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { Readable } from 'stream';
+import mammoth from 'mammoth';
 
 @Injectable()
 export class S3Service {
@@ -52,5 +53,15 @@ export class S3Service {
     }
 
     return Buffer.concat(chunks);
+  }
+
+  async extractDocxTextFromS3(s3Key: string): Promise<string> {
+    // 1. Retrieve the file buffer from S3
+    const fileBuffer = await this.getFile(s3Key);
+
+    // 2. Use mammoth to extract text
+    //    (This only works well for .docx; for .doc you need other solutions.)
+    const result = await mammoth.extractRawText({ buffer: fileBuffer });
+    return result.value; // The extracted text
   }
 }

@@ -4,8 +4,7 @@ import { Repository } from 'typeorm';
 import { KnowledgeBase } from '../../entities/knowledgebase.entity';
 import { CreateKnowledgeBaseDto } from './dto/create-knowledge-base.dto';
 import { UpdateKnowledgeBaseDto } from './dto/update-knowledge-base.dto';
-import { S3Service } from './s3.service'; // Or wherever your S3 logic lives
-import mammoth from 'mammoth';
+import { S3Service } from '../s3/s3.service';
 
 @Injectable()
 export class KnowledgeBaseService {
@@ -89,16 +88,5 @@ export class KnowledgeBaseService {
     if (result.affected === 0) {
       throw new NotFoundException(`Knowledge base with ID ${id} not found`);
     }
-  }
-
-
-  async extractDocxTextFromS3(s3Key: string): Promise<string> {
-    // 1. Retrieve the file buffer from S3
-    const fileBuffer = await this.s3Service.getFile(s3Key);
-
-    // 2. Use mammoth to extract text
-    //    (This only works well for .docx; for .doc you need other solutions.)
-    const result = await mammoth.extractRawText({ buffer: fileBuffer });
-    return result.value; // The extracted text
   }
 }

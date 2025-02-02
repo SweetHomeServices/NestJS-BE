@@ -15,6 +15,7 @@ import jwtConfig from './config/jwt.config';
 import { MailModule } from './mail/mail.module';
 import mailConfig from './config/mail.config';
 import { ChatMessagesModule } from './modules/chat-messages/chat-messages.module';
+import { S3Module } from './modules/s3/s3.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { ChatMessagesModule } from './modules/chat-messages/chat-messages.module
     KnowledgeBaseModule,
     MailModule,
     ChatMessagesModule,
+    S3Module
   ],
   controllers: [AppController],
   providers: [AppService],
