@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { KnowledgeBase } from '../../entities/knowledgebase.entity';
 import { CreateKnowledgeBaseDto } from './dto/create-knowledge-base.dto';
 import { UpdateKnowledgeBaseDto } from './dto/update-knowledge-base.dto';
-import { S3Service } from '../s3/s3.service';
+import { S3Service } from '../S3/s3.service';
 
 @Injectable()
 export class KnowledgeBaseService {
