@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { Readable } from 'stream';
-import mammoth from 'mammoth';
+var mammoth = require("mammoth");
 
 @Injectable()
 export class S3Service {
