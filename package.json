@@ -33,7 +33,7 @@
     "@signalwire/node": "^3.0.3",
     "bcrypt": "^5.1.1",
     "class-transformer": "^0.5.1",
-    "class-validator": "^0.14.0",
+    "class-validator": "^0.14.1",
     "handlebars": "^4.7.8",
     "mammoth": "^1.9.0",
     "multer": "^1.4.5-lts.1",

@@ -2,12 +2,15 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { Transform, Type } from 'class-transformer';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   
   // Validation pipe
-  app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalPipes(new ValidationPipe({
+    transform: true, // <-- important to enable class-transformer
+  }));
 
   // Swagger configuration
   const config = new DocumentBuilder()

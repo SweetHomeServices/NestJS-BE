@@ -33,6 +33,7 @@ export class KnowledgeBaseController {
     @Body() createKnowledgeBaseDto: CreateKnowledgeBaseMultipartDto,
     @UploadedFile() file?: Express.Multer.File,
   ) {
+  
     return this.knowledgeBaseService.create(createKnowledgeBaseDto, file);
   }
 
@@ -84,5 +85,6 @@ export class KnowledgeBaseController {
   remove(@Param('id') id: string) {
     return this.knowledgeBaseService.remove(id);
   }
+
 
 }
