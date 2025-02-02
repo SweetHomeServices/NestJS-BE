@@ -459,7 +459,7 @@ export class LeadsService {
     return {
       "role": "system",
       "content" : `${lead.campaign.knowledgeBase.primaryGoal}. ${extractedText} | For reference, today's date is ${new Date().toLocaleDateString()}.
-      The client's name is ${lead.client.firstName} ${lead.client.lastName}. The client's email is ${lead.client.email}. The client's phone number is ${lead.client.phone}.
+      The client's name is ${lead.firstName} ${lead.lastName}. The client's email is ${lead.email}. The client's phone number is ${lead.phone}.
       The client's zipcode is ${lead.zipcode}.`,
     };
   }
