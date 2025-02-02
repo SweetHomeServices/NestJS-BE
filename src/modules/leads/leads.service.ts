@@ -73,7 +73,7 @@ export class LeadsService {
 
     const messages = [];
     const systemMessage = await this.buildSystemMessage(lead);
-    return;
+   
 
     const clientMessage = {"role": "user", "content": createLeadDto.text};
 
@@ -111,8 +111,8 @@ export class LeadsService {
             text: confirmation
           })
         );
-        // (b) Send SMS to user
-        console.log(`Sending SMS to ${createLeadDto.phone}: ${confirmation}`);
+      
+        await this.sendMessageToClient(createLeadDto.phone, confirmation);
       }
     }
     else {
@@ -130,7 +130,7 @@ export class LeadsService {
   
       lead.messages = chatMessages;
 
-      await this.sendWhatsappMessage(createLeadDto.phone, responseMessage.content);
+      await this.sendMessageToClient(createLeadDto.phone, responseMessage.content);
     }
 
     const savedLead = await this.leadsRepository.save(lead);
@@ -200,7 +200,7 @@ export class LeadsService {
       return;
     } 
     
-    const systemMessage = this.buildSystemMessage(existingLead);
+    const systemMessage = await this.buildSystemMessage(existingLead);
    
 
     existingLead.messages.push(  
@@ -298,7 +298,7 @@ export class LeadsService {
       return;
     } 
     
-    const systemMessage = this.buildSystemMessage(existingLead);
+    const systemMessage = await this.buildSystemMessage(existingLead);
    
 
     existingLead.messages.push(  
@@ -448,6 +448,11 @@ export class LeadsService {
       console.error('Error sending WhatsApp message: ', error);
     }
   }
+
+  async sendMessageToClient(toNumber, messageBody) {
+    await this.sendWhatsappMessage(toNumber, messageBody);
+  }
+  
 
   async buildSystemMessage(lead: Lead) {
 
