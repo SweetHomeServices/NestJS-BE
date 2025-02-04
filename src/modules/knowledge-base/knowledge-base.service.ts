@@ -5,6 +5,8 @@ import { KnowledgeBase } from '../../entities/knowledgebase.entity';
 import { CreateKnowledgeBaseDto } from './dto/create-knowledge-base.dto';
 import { UpdateKnowledgeBaseDto } from './dto/update-knowledge-base.dto';
 import { S3Service } from '../S3/s3.service';
+import { CreateKnowledgeBaseMultipartDto } from './dto/create-knowledge-base-multipart.dto';
+import { UpdateKnowledgeBaseMultipartDto } from './dto/update-knowledge-base-multipart.dto';
 
 @Injectable()
 export class KnowledgeBaseService {
@@ -15,7 +17,7 @@ export class KnowledgeBaseService {
   ) {}
 
   async create(
-    createKnowledgeBaseDto: CreateKnowledgeBaseDto, 
+    createKnowledgeBaseDto: CreateKnowledgeBaseMultipartDto, 
     file?: Express.Multer.File,
   ): Promise<KnowledgeBase> {
     const { campaignId, ...knowledgeBaseData } = createKnowledgeBaseDto;
@@ -59,7 +61,7 @@ export class KnowledgeBaseService {
   }
 
   async update(id: string, 
-    updateKnowledgeBaseDto: UpdateKnowledgeBaseDto,
+    updateKnowledgeBaseDto: UpdateKnowledgeBaseMultipartDto,
     file?: Express.Multer.File,): Promise<KnowledgeBase> {
     const knowledgeBase = await this.findOne(id);
     const { campaignId, ...updateData } = updateKnowledgeBaseDto;

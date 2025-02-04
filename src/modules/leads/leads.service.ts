@@ -116,7 +116,7 @@ export class LeadsService {
   async findOne(id: string): Promise<Lead> {
     const lead = await this.leadsRepository.findOne({
       where: { id },
-      relations: ['client', 'campaign'],
+      relations: ['messages'],
     });
 
     if (!lead) {
@@ -440,5 +440,13 @@ export class LeadsService {
         }
       
       } 
+  }
+
+  async findCampaignTestLeads (campaignId: string) {  
+    const leads = await this.leadsRepository.find({
+      where: { source: LeadSource.TEST, campaign: { id: campaignId } },
+    });
+
+    return leads;
   }
 }

@@ -58,4 +58,12 @@ export class LeadsController {
     console.log('test');
     return this.leadsService.test();
   }
+
+
+  @Get('campaign-test-leads/:campaignId')
+  @ApiOperation({ summary: 'Get all leads' })
+  @ApiResponse({ status: 200, description: 'List of all leads', type: [Lead] })
+  findCampaignTestLeads(@Param('campaignId') campaignId: string) {
+    return this.leadsService.findCampaignTestLeads(campaignId);
+  }
 }

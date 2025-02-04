@@ -7,6 +7,7 @@ import { UpdateKnowledgeBaseDto } from './dto/update-knowledge-base.dto';
 import { KnowledgeBaseResponseDto } from './dto/knowledge-base-response.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CreateKnowledgeBaseMultipartDto } from './dto/create-knowledge-base-multipart.dto';
+import { UpdateKnowledgeBaseMultipartDto } from './dto/update-knowledge-base-multipart.dto';
 
 
 @ApiTags('Knowledge Base')
@@ -70,7 +71,7 @@ export class KnowledgeBaseController {
   @UseInterceptors(FileInterceptor('file'))
   update(
     @Param('id') id: string, 
-    @Body() updateKnowledgeBaseDto: UpdateKnowledgeBaseDto,
+    @Body() updateKnowledgeBaseDto: UpdateKnowledgeBaseMultipartDto,
     @UploadedFile() file?: Express.Multer.File,
   ) {
     return this.knowledgeBaseService.update(id, updateKnowledgeBaseDto, file);
