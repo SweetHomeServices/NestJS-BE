@@ -4,5 +4,6 @@ export enum LeadSource {
     EMAIL = 'email',
     REFERRAL = 'referral',
     SOCIAL_MEDIA = 'social_media',
-    OTHER = 'other'
+    OTHER = 'other',
+    TEST = 'test'
   }

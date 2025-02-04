@@ -1,6 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 
-export class IncomingWhatsappDto {
+export class LeadReplyDto {
     @ApiProperty({ example: '1234567890', description: 'Phone number of the sender' })
     From: string;
 

@@ -10,13 +10,13 @@ import { Campaign } from 'src/entities/campaign.entity';
 import { ChatMessage } from 'src/entities/chat-message.entity';
 import { LeadResponseDto } from './dto/lead-response.dto';
 import { ChatCompletionMessageParam } from 'openai/resources';
-import { IncomingSmsDto } from './dto/incoming-sms.dto';
-import { IncomingWhatsappDto } from './dto/incoming-whatsapp.dto';
 import MessagingResponse from 'twilio/lib/twiml/MessagingResponse';
 import twilioClient from 'src/config/twilio.config';
 import { S3Service } from '../S3/s3.service';
 import { parse, format } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
+import { LeadSource } from './dto/lead-source.enum';
+import { LeadReplyDto } from './dto/lead-reply.dto';
 
 @Injectable()
 export class LeadsService {
@@ -32,6 +32,7 @@ export class LeadsService {
 
   async create(createLeadDto: CreateLeadDto): Promise<LeadResponseDto> {
     const lead = this.leadsRepository.create(createLeadDto);
+    lead.messages = [];
     const existingClient = await this.clientRepository.findOne({ where: {email: createLeadDto.email} });
     
     if (!existingClient) {
@@ -56,41 +57,10 @@ export class LeadsService {
     lead.campaign = campaign;
 
     if (!this.isWithinWorkingHours(campaign)) {
-      await this.sendMessageToClient(createLeadDto.phone, campaign.afterHoursMessage);
-      const savedLead = await this.leadsRepository.save(lead);
-
-      const leadDto: LeadResponseDto = {
-        id: savedLead.id,
-        firstName: savedLead.firstName,
-        lastName: savedLead.lastName,
-        email: savedLead.email,
-        phone: savedLead.phone,
-        zipcode: savedLead.zipcode,
-        additionalInfo: savedLead.additionalInfo,
-        source: savedLead.source,
-        text: savedLead.text,
-        status: savedLead.status,
-      };
-      return leadDto;
+      return await this.processNotWithinWorkingHours(lead, campaign);
     }
 
-    const functions = [
-      {
-        name: "bookService",
-        description: "Schedules the requested job. E.g. chimney sweeping.",
-        parameters: {
-          type: "object",
-          properties: {
-            serviceType: { type: "string", description: "Type of service (chimney sweeping, etc.)" },
-            date: { type: "string", description: "Desired date in YYYY-MM-DD format" },
-            time: { type: "string", description: "Desired time in HH:MM format" },
-            address: { type: "string", description: "Address where the service will be performed" },
-            notes: { type: "string", description: "Any additional user preferences or notes" }
-          },
-          required: ["serviceType", "date", "time", "address"]
-        }
-      }
-    ];
+    const functions = this.buildCompletionFuntions();
 
     const messages = [];
     const systemMessage = await this.buildSystemMessage(lead);
@@ -112,46 +82,12 @@ export class LeadsService {
 
     const responseMessage = completion.choices[0].message;
 
-    const chatMessages: ChatMessage[] = [];
 
     if (responseMessage.tool_calls) {
-      const { name, arguments: argsString } = responseMessage.tool_calls[0].function;
-      const args = JSON.parse(argsString);
-      
-      if (name === "bookService") {
-        // 1. Call your scheduling system
-        console.log(`Scheduling ${args.serviceType} job for ${args.date} at ${args.time} at ${args.address}.`);
-    
-        // 2. Respond to user
-        const confirmation = `Your ${args.serviceType} job has been scheduled for ${args.date} at ${args.time}.`;
-        // (a) Add to conversation
-        chatMessages.push(
-          Object.assign(new ChatMessage(), {
-            lead: lead,
-            role: 'assistant',
-            text: confirmation
-          })
-        );
-      
-        await this.sendMessageToClient(createLeadDto.phone, confirmation);
-      }
+      await this.handleFunctionResponse(responseMessage, lead, true);
     }
     else {
-      const userChatMessage = new ChatMessage();
-      userChatMessage.role = 'user';
-      userChatMessage.text = createLeadDto.text;
-      userChatMessage.lead = lead;
-      chatMessages.push(userChatMessage);
-  
-      const assistantChatMessage = new ChatMessage();
-      assistantChatMessage.role = 'assistant';
-      assistantChatMessage.text = responseMessage.content;
-      assistantChatMessage.lead = lead;
-      chatMessages.push(assistantChatMessage);
-  
-      lead.messages = chatMessages;
-
-      await this.sendMessageToClient(createLeadDto.phone, responseMessage.content);
+      await this.handleNonFunctionResponse(responseMessage, lead, true);
     }
 
     const savedLead = await this.leadsRepository.save(lead);
@@ -203,106 +139,8 @@ export class LeadsService {
     }
   }
 
-  async processIncomingSms(dto: IncomingSmsDto) {
-    const {From: fromNumber, To: toNumber, Body: body } = dto;
-    console.log(`Incoming SMS from ${fromNumber} to ${toNumber}: ${body}`);
 
-    const existingLead = await this.leadsRepository.findOne({
-      where: {
-        phone: fromNumber,
-        campaign: {
-          campaignPhone: toNumber,
-        },
-      },
-      relations: ['client', 'campaign','campaign.knowledgeBase', 'messages'],
-    });
-    if (!existingLead) {
-      console.log(`No lead found for phone number ${fromNumber}`);
-      return;
-    } 
-    
-    const systemMessage = await this.buildSystemMessage(existingLead);
-   
-
-    existingLead.messages.push(  
-      Object.assign(new ChatMessage(), {
-        lead: existingLead,
-        role: 'user',
-        text: body
-      })
-    );
-
-   const mappedExsitingMessages = existingLead.messages.map((message) => ({ role: message.role, content: message.text }));
-
-   const messages: any = [systemMessage, ...mappedExsitingMessages];
-
-    const functions = [
-      {
-        name: "bookService",
-        description: "Schedules the requested job. E.g. chimney sweeping.",
-        parameters: {
-          type: "object",
-          properties: {
-            serviceType: { type: "string", description: "Type of service (chimney sweeping, etc.)" },
-            date: { type: "string", description: "Desired date in YYYY-MM-DD format" },
-            time: { type: "string", description: "Desired time in HH:MM format" },
-            address: { type: "string", description: "Address where the service will be performed" },
-            notes: { type: "string", description: "Any additional user preferences or notes" }
-          },
-          required: ["serviceType", "date", "time", "address"]
-        }
-      }
-    ];
-
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: messages,
-      functions,
-      function_call: "auto"
-    });
-
-    const responseMessage = completion.choices[0].message;
-
-    if (responseMessage.function_call) {
-      console.log('tool calls');
-      console.log(responseMessage.function_call);
-      const { name, arguments: argsString } = responseMessage.function_call;
-      const args = JSON.parse(argsString);
-      
-      if (name === "bookService") {
-        // 1. Call your scheduling system
-        console.log(`Scheduling ${args.serviceType} job for ${args.date} at ${args.time} at ${args.address}.`);
-    
-        // 2. Respond to user
-        const confirmation = `Your ${args.serviceType} job has been scheduled for ${args.date} at ${args.time}.`;
-        // (a) Add to conversation
-        existingLead.messages.push(
-          Object.assign(new ChatMessage(), {
-            lead: existingLead,
-            role: 'assistant',
-            text: confirmation
-          })
-        );
-        // (b) Send SMS to user
-        console.log(`Sending SMS to ${fromNumber}: ${confirmation}`);
-      }
-    }
-    else {
-      console.log('no tool calls');
-      console.log(responseMessage);
-      const assistantChatMessage = new ChatMessage();
-      assistantChatMessage.role = responseMessage.role;
-      assistantChatMessage.text = responseMessage.content;
-      assistantChatMessage.lead = existingLead;
-      existingLead.messages.push(assistantChatMessage);
-    }
-
-    const savedLead = await this.leadsRepository.save(existingLead);
-    
-    return;
-  }
-
-  async processIncomingWhatsapp(dto: IncomingWhatsappDto) {
+  async processReply(dto: LeadReplyDto) {
     const {From: fromNumber, To: toNumber, Body: body } = dto;
     
     const existingLead = await this.leadsRepository.findOne({
@@ -334,23 +172,7 @@ export class LeadsService {
 
    const messages: any = [systemMessage, ...mappedExsitingMessages];
 
-    const functions = [
-      {
-        name: "bookService",
-        description: "Schedules the requested job. E.g. chimney sweeping.",
-        parameters: {
-          type: "object",
-          properties: {
-            serviceType: { type: "string", description: "Type of service (chimney sweeping, etc.)" },
-            date: { type: "string", description: "Desired date in YYYY-MM-DD format" },
-            time: { type: "string", description: "Desired time in HH:MM format" },
-            address: { type: "string", description: "Address where the service will be performed" },
-            notes: { type: "string", description: "Any additional user preferences or notes" }
-          },
-          required: ["serviceType", "date", "time", "address"]
-        }
-      }
-    ];
+    const functions = this.buildCompletionFuntions();
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -363,38 +185,12 @@ export class LeadsService {
 
     if (responseMessage.function_call) {
       console.log('tool calls');
-      console.log(responseMessage.function_call);
-      const { name, arguments: argsString } = responseMessage.function_call;
-      const args = JSON.parse(argsString);
-      
-      if (name === "bookService") {
-        // 1. Call your scheduling system
-        console.log(`Scheduling ${args.serviceType} job for ${args.date} at ${args.time} at ${args.address}.`);
-    
-        // 2. Respond to user
-        const confirmation = `Your ${args.serviceType} job has been scheduled for ${args.date} at ${args.time}.`;
-        // (a) Add to conversation
-        existingLead.messages.push(
-          Object.assign(new ChatMessage(), {
-            lead: existingLead,
-            role: 'assistant',
-            text: confirmation
-          })
-        );
-        // (b) Send SMS to user
-        console.log(`Sending SMS to ${fromNumber}: ${confirmation}`);
-      }
+      await this.handleFunctionResponse(responseMessage, existingLead);
     }
     else {
       console.log('no tool calls');
       console.log(responseMessage);
-      const assistantChatMessage = new ChatMessage();
-      assistantChatMessage.role = responseMessage.role;
-      assistantChatMessage.text = responseMessage.content;
-      assistantChatMessage.lead = existingLead;
-      existingLead.messages.push(assistantChatMessage);
-
-      await this.sendWhatsappMessage(fromNumber, responseMessage.content);
+      await this.handleNonFunctionResponse(responseMessage, existingLead);
     }
 
     await this.leadsRepository.save(existingLead);
@@ -532,5 +328,117 @@ export class LeadsService {
   
     // 7) Compare: is the current UTC time between openUtc and closeUtc?
     return nowUtc >= openUtc && nowUtc <= closeUtc;
+  }
+
+  async processNotWithinWorkingHours(lead: Lead, campaign: Campaign) {
+    if (lead.source != LeadSource.TEST) {
+      await this.sendMessageToClient(lead.phone, campaign.afterHoursMessage);
+    }
+
+    const clientChatMessage = new ChatMessage();
+    clientChatMessage.role = 'user';
+    clientChatMessage.text = lead.text;
+    clientChatMessage.lead = lead;
+    lead.messages.push(clientChatMessage);
+
+    const assistantChatMessage = new ChatMessage();
+    assistantChatMessage.role = 'assistant';
+    assistantChatMessage.text = campaign.afterHoursMessage;
+    assistantChatMessage.lead = lead;
+    lead.messages.push(assistantChatMessage);
+    
+    const savedLead = await this.leadsRepository.save(lead);
+
+    const leadDto: LeadResponseDto = {
+      id: savedLead.id,
+      firstName: savedLead.firstName,
+      lastName: savedLead.lastName,
+      email: savedLead.email,
+      phone: savedLead.phone,
+      zipcode: savedLead.zipcode,
+      additionalInfo: savedLead.additionalInfo,
+      source: savedLead.source,
+      text: savedLead.text,
+      status: savedLead.status,
+    };
+    return leadDto;
+  }
+
+  buildCompletionFuntions() {
+    return [
+      {
+        name: "bookService",
+        description: "Schedules the requested job. E.g. chimney sweeping.",
+        parameters: {
+          type: "object",
+          properties: {
+            serviceType: { type: "string", description: "Type of service (chimney sweeping, etc.)" },
+            date: { type: "string", description: "Desired date in YYYY-MM-DD format" },
+            time: { type: "string", description: "Desired time in HH:MM format" },
+            address: { type: "string", description: "Address where the service will be performed" },
+            notes: { type: "string", description: "Any additional user preferences or notes" }
+          },
+          required: ["serviceType", "date", "time", "address"]
+        }
+      }
+    ];
+  }
+
+  async handleNonFunctionResponse(responseMessage, lead, includeClientMessage = false) {
+    
+    if (includeClientMessage) {
+      const clientChatMessage = new ChatMessage();
+      clientChatMessage.role = 'user';
+      clientChatMessage.text = lead.text;
+      clientChatMessage.lead = lead;
+      lead.messages.push(clientChatMessage);
+    }
+    
+    const assistantChatMessage = new ChatMessage();
+    assistantChatMessage.role = responseMessage.role;
+    assistantChatMessage.text = responseMessage.content;
+    assistantChatMessage.lead = lead;
+    lead.messages.push(assistantChatMessage);
+
+    if (lead.source != LeadSource.TEST) {
+      await this.sendMessageToClient(lead.phone, responseMessage.content);
+    }
+    
+  }
+
+  async handleFunctionResponse(responseMessage, lead, includeClientMessage = false) {
+    
+    if (includeClientMessage) {
+      const clientChatMessage = new ChatMessage();
+      clientChatMessage.role = 'user';
+      clientChatMessage.text = lead.text;
+      clientChatMessage.lead = lead;
+      lead.messages.push(clientChatMessage);
+    }
+
+    const { name, arguments: argsString } = responseMessage.function_call;
+    const args = JSON.parse(argsString);
+
+
+      if (name === "bookService") {
+        // 1. Call your scheduling system
+        console.log(`Scheduling ${args.serviceType} job for ${args.date} at ${args.time} at ${args.address}.`);
+    
+        // 2. Respond to user
+        const confirmation = `Your ${args.serviceType} job has been scheduled for ${args.date} at ${args.time}.`;
+        // (a) Add to conversation
+        lead.messages.push(
+          Object.assign(new ChatMessage(), {
+            lead: lead,
+            role: 'assistant',
+            text: confirmation
+          })
+        );
+      
+        if (lead.source != LeadSource.TEST) {
+          await this.sendMessageToClient(lead.phone, confirmation);
+        }
+      
+      } 
   }
 }
