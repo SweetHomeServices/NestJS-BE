@@ -17,6 +17,7 @@ import { parse, format } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { LeadSource } from './dto/lead-source.enum';
 import { LeadReplyDto } from './dto/lead-reply.dto';
+import { isWithinWorkingHours } from 'src/utils/helpers';
 
 @Injectable()
 export class LeadsService {
@@ -54,9 +55,14 @@ export class LeadsService {
       throw new NotFoundException(`Campaign with ID ${campaignId} not found`);
     }
 
+    const clientChatMessage = new ChatMessage();
+    clientChatMessage.role = 'user';
+    clientChatMessage.text = lead.text;
+    lead.messages.push(clientChatMessage);
+
     lead.campaign = campaign;
 
-    if (!this.isWithinWorkingHours(campaign)) {
+    if (!isWithinWorkingHours(campaign)) {
       return await this.processNotWithinWorkingHours(lead, campaign);
     }
 
@@ -70,17 +76,7 @@ export class LeadsService {
     messages.push(systemMessage);
     messages.push(clientMessage);
 
-    const responseMessage = await this.getReplyFromModel(lead, messages);
-
-
-    if (responseMessage.tool_calls) {
-      await this.handleFunctionResponse(responseMessage, lead, true);
-    }
-    else {
-      await this.handleNonFunctionResponse(responseMessage, lead, true);
-    }
-
-    const savedLead = await this.leadsRepository.save(lead);
+    const savedLead = await this.sendMessageToModel(lead, messages);
 
     const leadDto: LeadResponseDto = {
       id: savedLead.id,
@@ -146,13 +142,17 @@ export class LeadsService {
       console.log(`No lead found for phone number ${fromNumber}`);
       return;
     } 
+
+
+    if (!isWithinWorkingHours(existingLead.campaign)) {
+      return await this.processNotWithinWorkingHours(existingLead, existingLead.campaign);
+    }
     
     const systemMessage = await this.buildSystemMessage(existingLead);
    
 
     existingLead.messages.push(  
       Object.assign(new ChatMessage(), {
-        lead: existingLead,
         role: 'user',
         text: body
       })
@@ -162,19 +162,7 @@ export class LeadsService {
 
     const messages: any = [systemMessage, ...mappedExsitingMessages];
 
-    const responseMessage = await this.getReplyFromModel(existingLead, messages);
-
-    if (responseMessage.function_call) {
-      console.log('tool calls');
-      await this.handleFunctionResponse(responseMessage, existingLead);
-    }
-    else {
-      console.log('no tool calls');
-      console.log(responseMessage);
-      await this.handleNonFunctionResponse(responseMessage, existingLead);
-    }
-
-    await this.leadsRepository.save(existingLead);
+    await this.sendMessageToModel(existingLead, messages);
 
     return;
   }
@@ -229,66 +217,14 @@ export class LeadsService {
     };
   }
 
-
-  isWithinWorkingHours(campaign: Campaign): boolean {
-
-    const TIMEZONE_MAP: Record<string, string> = {
-      "pacific time": 'America/Los_Angeles',
-      "mountain time": 'America/Denver',
-      "central time": 'America/Chicago',
-      "eastern time": 'America/New_York',
-    };
-    // 1) Convert custom timezone code to IANA
-    const ianaZone = TIMEZONE_MAP[campaign.timezone?.toLowerCase()] ?? 'America/Los_Angeles';
-  
-    // 2) "Now" in UTC, plus "zonedNow" as the local time in the campaign's zone
-    const nowUtc = new Date();
-    const zonedNow = toZonedTime(nowUtc, ianaZone);
-  
-    // 3) Determine the day-of-week, e.g. "monday", "tuesday"
-    const dayOfWeek = format(zonedNow, 'EEEE').toLowerCase(); // e.g. "monday"
-  
-    // 4) Get today's working hours config
-    const dayHours = campaign.workingHours[dayOfWeek];
-    if (!dayHours || dayHours.closed) {
-      return false; // treat as closed if the day is missing or explicitly closed
-    }
-  
-    // e.g. "9:00 AM", "5:00 PM"
-    const openStr = dayHours.opens;
-    const closeStr = dayHours.closes;
-  
-    // We'll parse these times as if they're happening "today" in the campaign's local zone
-    const dateString = format(zonedNow, 'yyyy-MM-dd'); // e.g. "2025-02-05"
-  
-    // 5) Parse "yyyy-MM-dd 9:00 AM" => yields a "naive" Date in system local time
-    const openNaive = parse(`${dateString} ${openStr}`, 'yyyy-MM-dd h:mm a', new Date());
-    // interpret that naive date as local in ianaZone => convert to real UTC
-    const openUtc = fromZonedTime(openNaive, ianaZone);
-  
-    // 6) Same for close time
-    const closeNaive = parse(`${dateString} ${closeStr}`, 'yyyy-MM-dd h:mm a', new Date());
-    const closeUtc = fromZonedTime(closeNaive, ianaZone);
-  
-    // 7) Compare: is the current UTC time between openUtc and closeUtc?
-    return nowUtc >= openUtc && nowUtc <= closeUtc;
-  }
-
   async processNotWithinWorkingHours(lead: Lead, campaign: Campaign) {
     if (lead.source != LeadSource.TEST) {
       await this.sendMessageToClient(lead.phone, campaign.afterHoursMessage);
     }
 
-    const clientChatMessage = new ChatMessage();
-    clientChatMessage.role = 'user';
-    clientChatMessage.text = lead.text;
-    clientChatMessage.lead = lead;
-    lead.messages.push(clientChatMessage);
-
     const assistantChatMessage = new ChatMessage();
     assistantChatMessage.role = 'assistant';
     assistantChatMessage.text = campaign.afterHoursMessage;
-    assistantChatMessage.lead = lead;
     lead.messages.push(assistantChatMessage);
     
     const savedLead = await this.leadsRepository.save(lead);
@@ -328,20 +264,10 @@ export class LeadsService {
     ];
   }
 
-  async handleNonFunctionResponse(responseMessage, lead, includeClientMessage = false) {
-    
-    if (includeClientMessage) {
-      const clientChatMessage = new ChatMessage();
-      clientChatMessage.role = 'user';
-      clientChatMessage.text = lead.text;
-      clientChatMessage.lead = lead;
-      lead.messages.push(clientChatMessage);
-    }
-    
+  async handleNonFunctionResponse(responseMessage, lead) {
     const assistantChatMessage = new ChatMessage();
     assistantChatMessage.role = responseMessage.role;
     assistantChatMessage.text = responseMessage.content;
-    assistantChatMessage.lead = lead;
     lead.messages.push(assistantChatMessage);
 
     if (lead.source != LeadSource.TEST) {
@@ -350,16 +276,8 @@ export class LeadsService {
     
   }
 
-  async handleFunctionResponse(responseMessage, lead, includeClientMessage = false) {
+  async handleFunctionResponse(responseMessage, lead) {
     
-    if (includeClientMessage) {
-      const clientChatMessage = new ChatMessage();
-      clientChatMessage.role = 'user';
-      clientChatMessage.text = lead.text;
-      clientChatMessage.lead = lead;
-      lead.messages.push(clientChatMessage);
-    }
-
     const { name, arguments: argsString } = responseMessage.function_call;
     const args = JSON.parse(argsString);
 
@@ -373,7 +291,6 @@ export class LeadsService {
         // (a) Add to conversation
         lead.messages.push(
           Object.assign(new ChatMessage(), {
-            lead: lead,
             role: 'assistant',
             text: confirmation
           })
@@ -394,7 +311,7 @@ export class LeadsService {
     return leads;
   }
 
-  async getReplyFromModel(lead: Lead, messages: any) {
+  async sendMessageToModel(lead: Lead, messages: any) {
     const functions = this.buildCompletionFuntions();
     const model = lead.campaign.knowledgeBase?.model ?? "gpt-4o-mini";
 
@@ -405,6 +322,44 @@ export class LeadsService {
       function_call: "auto"
     });
 
-    return completion.choices[0].message;
+    const responseMessage =  completion.choices[0].message;
+
+    if (responseMessage.tool_calls) {
+      await this.handleFunctionResponse(responseMessage, lead);
+    }
+    else {
+      await this.handleNonFunctionResponse(responseMessage, lead);
+    }
+
+    return await this.leadsRepository.save(lead);
+  }
+
+  async resetLead(leadId: string) {
+    const lead = await this.leadsRepository.findOne({
+      where: { id: leadId },
+      relations: ['messages', 'campaign', 'campaign.knowledgeBase'],
+    });
+
+    if (!lead) {
+      throw new NotFoundException(`Lead with ID ${leadId} not found`);
+    }
+
+    const firstMessage = lead.messages[0];
+
+    lead.messages = [];
+    lead.messages.push(firstMessage);
+    
+    const messages = [];
+
+    const systemMessage = await this.buildSystemMessage(lead);
+   
+
+    const clientMessage = {"role": "user", "content": lead.text};
+
+    messages.push(systemMessage);
+    messages.push(clientMessage);
+
+    return await this.sendMessageToModel(lead, messages);
   }
 }
+

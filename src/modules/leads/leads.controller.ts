@@ -58,4 +58,11 @@ export class LeadsController {
   findCampaignTestLeads(@Param('campaignId') campaignId: string) {
     return this.leadsService.findCampaignTestLeads(campaignId);
   }
+
+  @Post('reset/:id')
+  @ApiOperation({ summary: 'Reset lead chat history' })
+  @ApiResponse({ status: 201, description: 'Lead reset successfully', type: Lead })
+  ResetLead(@Param('id') id: string) {
+    return this.leadsService.resetLead(id);
+  }
 }
