@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import { IsString, IsBoolean, IsOptional, IsUUID } from 'class-validator';
 
 export class UpdateKnowledgeBaseDto {
@@ -29,6 +30,7 @@ export class UpdateKnowledgeBaseDto {
 
   @ApiProperty({ required: false })
   @IsBoolean()
+  @Transform(({ value }) => value === 'true' ? true : false)
   @IsOptional()
   useEmojiOnResponse?: boolean;
 
