@@ -51,14 +51,6 @@ export class LeadsController {
     return this.leadsService.remove(id);
   }
 
-  @Get('test/test')
-  @ApiOperation({ summary: 'Test endpoint' })
-  @ApiResponse({ status: 200, description: 'Test endpoint' })
-  test() {
-    console.log('test');
-    return this.leadsService.test();
-  }
-
 
   @Get('campaign-test-leads/:campaignId')
   @ApiOperation({ summary: 'Get all leads' })

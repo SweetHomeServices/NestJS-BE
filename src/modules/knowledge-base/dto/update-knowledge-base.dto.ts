@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsString, IsBoolean, IsOptional, IsUUID } from 'class-validator';
+import { IsString, IsBoolean, IsOptional, IsUUID, IsEnum } from 'class-validator';
+import { AiModel } from './ai-model.enum';
 
 export class UpdateKnowledgeBaseDto {
   @ApiProperty({ required: false })
@@ -38,6 +39,16 @@ export class UpdateKnowledgeBaseDto {
   @IsString()
   @IsOptional()
   communicationTone?: string;
+
+  @ApiProperty({
+    enum: AiModel,
+    example: AiModel.GPT40MINI,
+    description: 'AI model for the knowledgebase',
+    enumName: 'AiModel'
+  })
+  @IsEnum(AiModel)
+  @IsOptional()
+  model: AiModel;
 
   @ApiProperty({ required: false })
   @IsUUID()

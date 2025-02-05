@@ -34,6 +34,9 @@ export class KnowledgeBase {
   @Column({ type: 'text', nullable: true })
   extractedText?: string;
 
+  @Column({ type: 'text', default: 'gpt-4o-mini' })
+  model: string;
+
   @OneToMany(() => Campaign, campaign => campaign.knowledgeBase)
   campaigns: Campaign[];
 

@@ -60,7 +60,6 @@ export class LeadsService {
       return await this.processNotWithinWorkingHours(lead, campaign);
     }
 
-    const functions = this.buildCompletionFuntions();
 
     const messages = [];
     const systemMessage = await this.buildSystemMessage(lead);
@@ -71,16 +70,7 @@ export class LeadsService {
     messages.push(systemMessage);
     messages.push(clientMessage);
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: messages,
-      functions,
-      function_call: "auto"
-    });
-
-    console.log(completion.choices[0].message);
-
-    const responseMessage = completion.choices[0].message;
+    const responseMessage = await this.getReplyFromModel(lead, messages);
 
 
     if (responseMessage.tool_calls) {
@@ -168,20 +158,11 @@ export class LeadsService {
       })
     );
 
-   const mappedExsitingMessages = existingLead.messages.map((message) => ({ role: message.role, content: message.text }));
+    const mappedExsitingMessages = existingLead.messages.map((message) => ({ role: message.role, content: message.text }));
 
-   const messages: any = [systemMessage, ...mappedExsitingMessages];
+    const messages: any = [systemMessage, ...mappedExsitingMessages];
 
-    const functions = this.buildCompletionFuntions();
-
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: messages,
-      functions,
-      function_call: "auto"
-    });
-
-    const responseMessage = completion.choices[0].message;
+    const responseMessage = await this.getReplyFromModel(existingLead, messages);
 
     if (responseMessage.function_call) {
       console.log('tool calls');
@@ -196,43 +177,6 @@ export class LeadsService {
     await this.leadsRepository.save(existingLead);
 
     return;
-  }
-
-  async test() {
-
-    const functionDefinitions = [
-      {
-        name: "bookAppointment",
-        description: "Schedules an appointment for the user given a date, time, and any extra details.",
-        parameters: {
-          type: "object",
-          properties: {
-            date: {
-              type: "string",
-              description: "The date for the appointment, in YYYY-MM-DD format."
-            },
-            time: {
-              type: "string",
-              description: "The time for the appointment, in HH:MM format."
-            },
-            details: {
-              type: "string",
-              description: "Additional details or requests from the user."
-            }
-          },
-          required: ["date", "time"]
-        }
-      }
-    ];
-    
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [{"role": "user", "content": "Hi i'd like to book an appointment on March 25th 2025 at 10:00am"}],
-      functions: functionDefinitions,
-      function_call: "auto"
-  });
-  
-  console.log(completion.choices[0].message);
   }
 
   async sendSms(fromNumber: string, toNumber: string, body: string) {
@@ -448,5 +392,19 @@ export class LeadsService {
     });
 
     return leads;
+  }
+
+  async getReplyFromModel(lead: Lead, messages: any) {
+    const functions = this.buildCompletionFuntions();
+    const model = lead.campaign.knowledgeBase?.model ?? "gpt-4o-mini";
+
+    const completion = await openai.chat.completions.create({
+      model: model,
+      messages: messages,
+      functions,
+      function_call: "auto"
+    });
+
+    return completion.choices[0].message;
   }
 }
