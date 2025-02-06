@@ -13,7 +13,7 @@ export class ChatMessage {
   @Column()
   text: string;
 
-  @ManyToOne(() => Lead, lead => lead.messages)
+  @ManyToOne(() => Lead, lead => lead.messages, { onDelete: 'CASCADE' })
   lead: Lead;
 
   @CreateDateColumn()
