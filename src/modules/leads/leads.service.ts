@@ -142,11 +142,6 @@ export class LeadsService {
       console.log(`No lead found for phone number ${fromNumber}`);
       return;
     } 
-
-
-    if (!isWithinWorkingHours(existingLead.campaign)) {
-      return await this.processNotWithinWorkingHours(existingLead, existingLead.campaign);
-    }
     
     const systemMessage = await this.buildSystemMessage(existingLead);
    
@@ -157,6 +152,10 @@ export class LeadsService {
         text: body
       })
     );
+
+    if (!isWithinWorkingHours(existingLead.campaign)) {
+      return await this.processNotWithinWorkingHours(existingLead, existingLead.campaign);
+    }
 
     const mappedExsitingMessages = existingLead.messages.map((message) => ({ role: message.role, content: message.text }));
 
