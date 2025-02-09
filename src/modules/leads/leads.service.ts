@@ -18,6 +18,7 @@ import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { LeadSource } from './dto/lead-source.enum';
 import { LeadReplyDto } from './dto/lead-reply.dto';
 import { isWithinWorkingHours } from 'src/utils/helpers';
+import { create } from 'domain';
 
 @Injectable()
 export class LeadsService {
@@ -58,6 +59,7 @@ export class LeadsService {
     const clientChatMessage = new ChatMessage();
     clientChatMessage.role = 'user';
     clientChatMessage.text = lead.text;
+    clientChatMessage.createdAt = new Date();
     lead.messages.push(clientChatMessage);
 
     lead.campaign = campaign;
@@ -149,7 +151,8 @@ export class LeadsService {
     existingLead.messages.push(  
       Object.assign(new ChatMessage(), {
         role: 'user',
-        text: body
+        text: body,
+        createdAt: new Date(),
       })
     );
 
