@@ -291,12 +291,12 @@ export class LeadsService {
         // 2. Respond to user
         const confirmation = `Your ${args.serviceType} job has been scheduled for ${args.date} at ${args.time}.`;
         // (a) Add to conversation
-        lead.messages.push(
-          Object.assign(new ChatMessage(), {
-            role: 'assistant',
-            text: confirmation
-          })
-        );
+
+        const assistantChatMessage = new ChatMessage();
+        assistantChatMessage.role = 'assistant';
+        assistantChatMessage.text = confirmation;
+        lead.messages.push(assistantChatMessage);
+        
       
         if (lead.source != LeadSource.TEST) {
           await this.sendMessageToClient(lead.phone, confirmation);
@@ -325,8 +325,8 @@ export class LeadsService {
     });
 
     const responseMessage =  completion.choices[0].message;
-
-    if (responseMessage.tool_calls) {
+    
+    if (responseMessage.function_call) {
       await this.handleFunctionResponse(responseMessage, lead);
     }
     else {
